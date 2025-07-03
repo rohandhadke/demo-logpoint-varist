@@ -15,18 +15,13 @@ from .settings import settings
 from .models import SubmitResponse, ReportResponse
 from .storage import store
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Logging
-# ──────────────────────────────────────────────────────────────────────────────
+
 logger = logging.getLogger("varist-demo")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
 )
 
-# ──────────────────────────────────────────────────────────────────────────────
-# FastAPI app
-# ──────────────────────────────────────────────────────────────────────────────
 app = FastAPI(title="Varist ↔ Logpoint Demo (Improved)")
 
 
@@ -43,9 +38,7 @@ def health():
     return {"status": "ok"}
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# POST  /varist-submit-file
-# ──────────────────────────────────────────────────────────────────────────────
+
 @app.post("/varist-submit-file", response_model=SubmitResponse)
 async def varist_submit_file(
     background_tasks: BackgroundTasks,
@@ -56,17 +49,14 @@ async def varist_submit_file(
 
     submission_id = str(uuid4())
 
-    # ①  Optimistic “running” record so early GETs don’t 404
     await store.save(
         submission_id,
         {"submission_id": submission_id, "status": "running"},
     )
 
-    # ②  Read the upload NOW (UploadFile will close after response)
     file_bytes = await file.read()
     filename = file.filename
 
-    # ③  Background task: forward to Hybrid Analyzer stub
     async def forward_to_ha(payload: bytes, name: str):
         try:
             async with aiohttp.ClientSession(
@@ -95,9 +85,6 @@ async def varist_submit_file(
     return SubmitResponse(submission_id=submission_id, status="running")
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# GET  /varist-get-report/{sid}
-# ──────────────────────────────────────────────────────────────────────────────
 @app.get("/varist-get-report/{submission_id}", response_model=ReportResponse)
 async def varist_get_report(
     submission_id: str,
